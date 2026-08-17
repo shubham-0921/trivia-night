@@ -1,0 +1,363 @@
+import type { DiffLevel, RoundDef, RoundGroup, Team } from "./types";
+
+export const TEAM_COLORS = ["--t1", "--t2", "--t3", "--t4", "--t5"];
+
+export const DEFAULT_TEAMS: Team[] = [
+  { id: "t1", name: "Team 1", color: "--t1", members: ["Aditya", "Bhanu", "Shreya", "Harsh", "Nripesh"] },
+  { id: "t2", name: "Team 2", color: "--t2", members: ["Akaash", "Shivani", "Utkarsh", "Kevin", "Yatharth"] },
+  { id: "t3", name: "Team 3", color: "--t3", members: ["Kalash", "Vaishnavi", "Malhar", "Anoop", "Prangshu"] },
+  { id: "t4", name: "Team 4", color: "--t4", members: ["Shubham", "Vartika", "Raj", "Shantanu", "Neel"] },
+];
+
+export function homeTeamOf(name: string): string | null {
+  const found = DEFAULT_TEAMS.find((t) => t.members.includes(name));
+  return found ? found.id : null;
+}
+
+// All three levels are worth the same point — this is a difficulty pick for pacing/tracking,
+// not a points wager. See "How each team played it" on the end screen for the picks recap.
+export const DIFF_LEVELS: DiffLevel[] = [
+  { key: "easy", label: "Easy", points: 1, desc: "Safe pick" },
+  { key: "medium", label: "Medium", points: 1, desc: "Balanced" },
+  { key: "hard", label: "Hard", points: 1, desc: "Go big" },
+];
+
+// Every round ships a bigger bank of questions than we actually use per game.
+// Every playthrough draws a fresh random subset (see buildActiveQuestionSets), so replaying
+// the game doesn't repeat the same set, and no two categories ever share a question.
+export const TURNS_PER_ROUND = 20;
+
+export const ROUNDS: RoundDef[] = [
+  {
+    key: "bollywood",
+    icon: "🎬",
+    title: "Bollywood — Dialogue & Deep Cuts",
+    budget: "~7 min",
+    questions: [
+      { kicker: "Name the movie", prompt: '"Mere paas maa hai"', answer: "Deewaar (1975)" },
+      { kicker: "Name the movie", prompt: '"Kitne aadmi the?"', answer: "Sholay (1975)" },
+      { kicker: "Name the movie", prompt: '"Don ko pakadna mushkil hi nahi, namumkin hai"', answer: "Don (1978)" },
+      {
+        kicker: "Name the movie",
+        prompt: '"Bade bade deshon mein aisi choti choti baatein hoti rehti hain"',
+        answer: "Dilwale Dulhania Le Jayenge (1995)",
+      },
+      { kicker: "Name the movie", prompt: '"Mogambo khush hua"', answer: "Mr. India (1987)" },
+      { kicker: "Name the movie", prompt: '"Tareekh pe tareekh"', answer: "Damini (1993)" },
+      { kicker: "Name the movie", prompt: '"Picture abhi baaki hai mere dost"', answer: "Om Shanti Om (2007)" },
+      {
+        kicker: "Name the movie",
+        prompt: '"Ek chutki sindoor ki keemat tum kya jaano, Ramesh Babu"',
+        answer: "Om Shanti Om (2007)",
+      },
+      {
+        kicker: "Name the movie",
+        prompt: '"Rishtey mein toh hum tumhare baap lagte hain, naam hai Shahenshah"',
+        answer: "Shahenshah (1988)",
+      },
+      { kicker: "Name the movie", prompt: '"Jaa Simran jaa, jee le apni zindagi"', answer: "Dilwale Dulhania Le Jayenge (1995)" },
+      {
+        kicker: "Hard trivia",
+        prompt: "Which 1957 film starring Nargis was India's first-ever submission for the Best Foreign Language Oscar?",
+        answer: "Mother India",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Which 2001 film, about a cricket match against the British, was also nominated for that Oscar?",
+        answer: "Lagaan",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: 'Sholay\'s iconic "Ramgarh" village scenes were actually shot in a rocky region of which state?',
+        answer: "Karnataka (Ramanagara)",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Which composer duo scored the music for both DDLJ and Kuch Kuch Hota Hai?",
+        answer: "Jatin–Lalit",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: 'Amitabh Bachchan\'s breakout "angry young man" role came in which 1973 film?',
+        answer: "Zanjeer",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Which actress, star of Mother India, is considered Hindi cinema's first female superstar?",
+        answer: "Nargis",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "A.R. Rahman won his first two Oscars (Score + Song) for which 2008 film?",
+        answer: "Slumdog Millionaire",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Guru Dutt directed and starred in this 1957 classic about a struggling, unrecognized poet.",
+        answer: "Pyaasa",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Sholay (1975) is famous for the characters Jai and Veeru — who plays the dacoit villain Gabbar Singh?",
+        answer: "Amjad Khan",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Which 2016 film became the first Indian movie to gross over ₹1000 crore worldwide?",
+        answer: "Dangal",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: 'Guru Dutt\'s "Kaagaz Ke Phool" (1959) holds a notable first in Indian film history — what was it?',
+        answer: "India's first film shot in CinemaScope",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Mira Nair's 1988 film about street children in Mumbai won which prestigious award at Cannes?",
+        answer: "Caméra d'Or",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: 'Satyajit Ray\'s "Pather Panchali" (1955) is the first installment of which acclaimed trilogy?',
+        answer: "The Apu Trilogy",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Which lavish 1960 Mughal-era epic, starring Dilip Kumar and Madhubala, took over a decade to complete?",
+        answer: "Mughal-e-Azam",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Which legendary playback singer, who passed away in 2022, is widely cited as one of the most recorded singers in history?",
+        answer: "Lata Mangeshkar",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Sholay's (1975) iconic music, including its background score, was composed by which son of legendary composer S.D. Burman?",
+        answer: "R.D. Burman",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: 'Dilip Kumar, Raj Kapoor, and Dev Anand are collectively nicknamed the "___" of 1950s–60s Hindi cinema.',
+        answer: "Trimurti (holy trinity) of Bollywood",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: 'Which 1973 R.D. Burman-scored film, featuring "Chura Liya Hai Tumne," is considered an early fusion of rock music with Hindi film songs?',
+        answer: "Yaadon Ki Baaraat",
+      },
+      {
+        kicker: "Hard trivia",
+        prompt: "Amitabh Bachchan's father, Harivansh Rai Bachchan, was a celebrated Hindi poet known for which epic poetic work?",
+        answer: "Madhushala",
+      },
+    ],
+  },
+  {
+    key: "flags",
+    icon: "🚩",
+    title: "Flags — With Hints",
+    budget: "~8 min",
+    questions: [
+      { flag: "🇧🇹", hints: ["Known as the last Shangri-La", 'Measures "Gross National Happiness" instead of GDP', "Home to the Tiger's Nest monastery"], answer: "Bhutan" },
+      { flag: "🇲🇳", hints: ["Homeland of Genghis Khan's empire", "Vast steppe bordering the Gobi Desert", "Sandwiched between Russia and China"], answer: "Mongolia" },
+      { flag: "🇱🇻", hints: ["A Baltic state", "Capital is Riga", 'Part of the "Singing Revolution" against Soviet rule'], answer: "Latvia" },
+      { flag: "🇵🇾", hints: ["Landlocked South American country", "Speaks both Spanish and Guaraní", "Borders Brazil, Argentina and Bolivia"], answer: "Paraguay" },
+      { flag: "🇰🇿", hints: ["World's largest landlocked country", "Former Soviet republic", "Moved its capital to Astana"], answer: "Kazakhstan" },
+      { flag: "🇪🇹", hints: ["Never formally colonized", "Believed to be the birthplace of coffee", "Uses its own unique calendar"], answer: "Ethiopia" },
+      { flag: "🇱🇧", hints: ["A cedar tree sits on its flag", "Capital is Beirut", "Famous for hummus and tabbouleh"], answer: "Lebanon" },
+      { flag: "🇺🇾", hints: ['A golden "Sun of May" sits on its flag', "Wedged between Brazil and Argentina", "Home of former president José Mujica"], answer: "Uruguay" },
+      { flag: "🇴🇲", hints: ["A sultanate on the Arabian Peninsula", "Historically famous for frankincense", "Capital is Muscat"], answer: "Oman" },
+      { flag: "🇸🇰", hints: ["Landlocked Central European country", "Split peacefully from a neighbor in 1993", "Capital is Bratislava"], answer: "Slovakia" },
+      { flag: "🇰🇬", hints: ["Mountainous Central Asian nation", "A stylized yurt roof sits inside its sun symbol", "Borders Kazakhstan and China"], answer: "Kyrgyzstan" },
+      { flag: "🇲🇹", hints: ["Smallest member state of the EU", "A Mediterranean island nation", "Former British colony"], answer: "Malta" },
+      { flag: "🇿🇲", hints: ["Shares Victoria Falls with a neighbor", "Formerly called Northern Rhodesia", "Capital is Lusaka"], answer: "Zambia" },
+      { flag: "🇦🇿", hints: ['Nicknamed the "Land of Fire"', "Caucasus nation on the Caspian Sea", "Capital is Baku"], answer: "Azerbaijan" },
+      { flag: "🇧🇳", hints: ["Tiny oil-rich sultanate on Borneo", "Still ruled by a hereditary Sultan", "Capital is Bandar Seri Begawan"], answer: "Brunei" },
+      { flag: "🇸🇮", hints: ["A former Yugoslav republic", "Capital is Ljubljana", "Home to the postcard-famous Lake Bled"], answer: "Slovenia" },
+      { flag: "🇹🇹", hints: ["A twin-island Caribbean nation", "Birthplace of steelpan and calypso music", "Capital is Port of Spain"], answer: "Trinidad and Tobago" },
+      { flag: "🇲🇩", hints: ["Landlocked Eastern European country", "Sits between Romania and Ukraine", "Known for its wine industry"], answer: "Moldova" },
+      { flag: "🇳🇦", hints: ["Home to the Namib Desert", "Once a German colony, later ruled by South Africa", "Capital is Windhoek"], answer: "Namibia" },
+      { flag: "🇰🇮", hints: ["Pacific nation spanning all four hemispheres", "One of the first countries to see each New Year", "Made up of 33 coral atolls"], answer: "Kiribati" },
+      { flag: "🇱🇸", hints: ["Entirely surrounded by one other country — South Africa", 'Nicknamed "The Kingdom in the Sky" for its mountains', "Capital is Maseru"], answer: "Lesotho" },
+      { flag: "🇬🇼", hints: ["Former Portuguese colony in West Africa", "A major global exporter of cashews", "Capital is Bissau"], answer: "Guinea-Bissau" },
+      { flag: "🇹🇯", hints: ["Mountainous Central Asian nation", 'Home to the Pamir Mountains, the "Roof of the World"', "Capital is Dushanbe"], answer: "Tajikistan" },
+      { flag: "🇸🇧", hints: ["Pacific archipelago near Papua New Guinea", "Site of the WWII Battle of Guadalcanal", "Capital is Honiara"], answer: "Solomon Islands" },
+      { flag: "🇲🇷", hints: ["An Islamic republic mostly covered by the Sahara", "West African, on the Atlantic coast", "Capital is Nouakchott"], answer: "Mauritania" },
+      { flag: "🇦🇲", hints: ["First nation to adopt Christianity as a state religion", "A Caucasus country bordering Turkey", "Capital is Yerevan"], answer: "Armenia" },
+      { flag: "🇬🇪", hints: ["Caucasus nation between the Black and Caspian Seas", "One of the world's oldest wine-producing regions", "Capital is Tbilisi"], answer: "Georgia" },
+      { flag: "🇧🇫", hints: ["Landlocked West African nation", "Formerly called Upper Volta", "Capital is Ouagadougou"], answer: "Burkina Faso" },
+      { flag: "🇹🇱", hints: ["One of Asia's youngest countries, independent since 2002", "Shares an island with Indonesia", "Capital is Dili"], answer: "Timor-Leste" },
+    ],
+  },
+  {
+    key: "capitals",
+    icon: "🏛️",
+    title: "Capitals",
+    budget: "~7 min",
+    questions: [
+      { kicker: "Capital of", prompt: "Sri Lanka (not Colombo)", answer: "Sri Jayawardenepura Kotte" },
+      { kicker: "Capital of", prompt: "Nigeria (not Lagos)", answer: "Abuja" },
+      { kicker: "Capital of", prompt: "Myanmar (not Yangon)", answer: "Naypyidaw" },
+      { kicker: "Capital of", prompt: "Côte d'Ivoire / Ivory Coast (not Abidjan)", answer: "Yamoussoukro" },
+      { kicker: "Capital of", prompt: "Bolivia — the constitutional capital (not the seat of government, La Paz)", answer: "Sucre" },
+      { kicker: "Capital of", prompt: "New Zealand (not Auckland)", answer: "Wellington" },
+      { kicker: "Capital of", prompt: "Tanzania (not Dar es Salaam)", answer: "Dodoma" },
+      { kicker: "Capital of", prompt: "Pakistan (not Karachi)", answer: "Islamabad" },
+      { kicker: "Capital of", prompt: "Vietnam (not Ho Chi Minh City)", answer: "Hanoi" },
+      { kicker: "Capital of", prompt: "Montenegro", answer: "Podgorica" },
+      { kicker: "Capital of", prompt: "Eswatini (formerly Swaziland)", answer: "Mbabane" },
+      { kicker: "Capital of", prompt: "Palau", answer: "Ngerulmud" },
+      { kicker: "Capital of", prompt: "Micronesia", answer: "Palikir" },
+      { kicker: "Capital of", prompt: "Bosnia and Herzegovina", answer: "Sarajevo" },
+      { kicker: "Capital of", prompt: "Kosovo", answer: "Pristina" },
+      { kicker: "Capital of", prompt: "Suriname", answer: "Paramaribo" },
+      { kicker: "Capital of", prompt: "Vanuatu", answer: "Port Vila" },
+      { kicker: "Capital of", prompt: "Chad", answer: "N'Djamena" },
+      { kicker: "Capital of", prompt: "Turkmenistan", answer: "Ashgabat" },
+      { kicker: "Capital of", prompt: "Kazakhstan (renamed from Astana in 2019, then back)", answer: "Astana" },
+      { kicker: "Capital of", prompt: "Cameroon (not Douala)", answer: "Yaoundé" },
+      { kicker: "Capital of", prompt: "Malaysia's administrative capital — where the federal government actually sits (not Kuala Lumpur)", answer: "Putrajaya" },
+      { kicker: "Capital of", prompt: "Benin — the official constitutional capital (not the seat of government, Cotonou)", answer: "Porto-Novo" },
+      { kicker: "Capital of", prompt: "Comoros", answer: "Moroni" },
+      { kicker: "Capital of", prompt: "Equatorial Guinea", answer: "Malabo" },
+      { kicker: "Capital of", prompt: "Eritrea", answer: "Asmara" },
+      { kicker: "Capital of", prompt: "Laos", answer: "Vientiane" },
+      { kicker: "Capital of", prompt: "San Marino", answer: "City of San Marino" },
+      { kicker: "Capital of", prompt: "Which country has no official capital city — the Yaren District just serves as its de facto government seat?", answer: "Nauru" },
+      { kicker: "Capital of", prompt: "Kiribati", answer: "South Tarawa" },
+    ],
+  },
+  {
+    key: "festivals",
+    icon: "🎉",
+    title: "Festivals",
+    budget: "~7 min",
+    questions: [
+      { kicker: "Which festival?", prompt: "A Tamil Nadu harvest festival honoring the Sun God, celebrated over four days", answer: "Pongal" },
+      { kicker: "Which festival?", prompt: "The Persian New Year, celebrated at the spring equinox across Iran and Central Asia", answer: "Nowruz" },
+      { kicker: "Which festival?", prompt: "The Japanese tradition of gathering to view blooming cherry blossoms", answer: "Hanami" },
+      { kicker: "Which festival?", prompt: "Mongolia's festival of wrestling, archery, and horse racing", answer: "Naadam" },
+      { kicker: "Which festival?", prompt: "A Scottish fire festival where locals burn a replica Viking longship", answer: "Up Helly Aa" },
+      { kicker: "Which festival?", prompt: "A Spanish festival in Buñol where participants throw tomatoes at each other", answer: "La Tomatina" },
+      { kicker: "Which festival?", prompt: "An Alpine European tradition featuring a horned, demon-like companion of St. Nicholas", answer: "Krampusnacht" },
+      { kicker: "Which festival?", prompt: "An Ethiopian Orthodox festival celebrating the baptism of Jesus", answer: "Timkat (Epiphany)" },
+      { kicker: "Which festival?", prompt: "An 8-day Jewish festival commemorating the rededication of the Second Temple in Jerusalem", answer: "Hanukkah" },
+      { kicker: "Which festival?", prompt: "A Buddhist festival celebrating the Buddha's birth, enlightenment, and death", answer: "Vesak" },
+      { kicker: "Which festival?", prompt: "An Incan sun-god festival still celebrated today, especially in Cusco, Peru", answer: "Inti Raymi" },
+      { kicker: "Which festival?", prompt: "A Japanese Buddhist festival honoring the spirits of ancestors", answer: "Obon" },
+      { kicker: "Which festival?", prompt: "A Bahamian masquerade street parade held around Christmas and New Year", answer: "Junkanoo" },
+      { kicker: "Which festival?", prompt: "Rio's famous carnival takes place right before which Christian season of fasting begins?", answer: "Lent" },
+      { kicker: "Which festival?", prompt: "A festival where thousands wrestle in a pool of mud, held annually in South Korea", answer: "Boryeong Mud Festival" },
+      { kicker: "Which festival?", prompt: "A major Japanese festival held every July, centered in the city of Kyoto", answer: "Gion Matsuri" },
+      { kicker: "Which festival?", prompt: "Spain's Holy Week, marked by elaborate religious processions", answer: "Semana Santa" },
+      { kicker: "Which festival?", prompt: "Korea's harvest festival, roughly equivalent to Western Thanksgiving", answer: "Chuseok" },
+      { kicker: "Which festival?", prompt: "A Thai festival where decorated baskets are floated on rivers and lakes", answer: "Loi Krathong" },
+      { kicker: "Which festival?", prompt: "An annual arts and community gathering held in Nevada's Black Rock Desert", answer: "Burning Man" },
+      { kicker: "Which festival?", prompt: "Bali's Hindu New Year, observed as a Day of Silence with the entire island shutting down", answer: "Nyepi" },
+      { kicker: "Which festival?", prompt: "A Japanese festival marking the day before spring, where roasted soybeans are thrown to drive away evil spirits", answer: "Setsubun" },
+      { kicker: "Which festival?", prompt: "A Russian pre-Lenten festival featuring pancake (blini) eating and the burning of a straw effigy of winter", answer: "Maslenitsa" },
+      { kicker: "Which festival?", prompt: "Basel's carnival, famous for its distinctive drumming and piccolo processions, held in which country?", answer: "Switzerland (Basel Fasnacht)" },
+      { kicker: "Which festival?", prompt: "A major West African harvest festival celebrating the new yam crop, especially among the Igbo people", answer: "New Yam Festival" },
+      { kicker: "Which festival?", prompt: "A Nordic and German spring festival on April 30th, associated with bonfires and folklore about witches", answer: "Walpurgisnacht" },
+      { kicker: "Which festival?", prompt: "Kerala's harvest festival, marked by elaborate flower carpets (pookalam) and snake boat races", answer: "Onam" },
+      { kicker: "Which festival?", prompt: "A nine-night Hindu festival of dance, especially the garba and dandiya raas, prominent in Gujarat", answer: "Navratri" },
+      { kicker: "Which festival?", prompt: "Scotland's traditional New Year's Eve celebration", answer: "Hogmanay" },
+    ],
+  },
+  {
+    key: "sports",
+    icon: "🏆",
+    title: "Sports",
+    budget: "~7 min",
+    questions: [
+      { kicker: "Hard trivia", prompt: "The modern sport of badminton takes its name from a house in which country, where it was first played in the 1860s?", answer: "England (Badminton House, Gloucestershire)" },
+      { kicker: "Hard trivia", prompt: "Who holds the men's record for most Grand Slam singles titles, reaching 24 in 2023?", answer: "Novak Djokovic" },
+      { kicker: "Hard trivia", prompt: "As of 2023, which country has won the most Cricket World Cups?", answer: "Australia (6 titles)" },
+      { kicker: "Hard trivia", prompt: 'In which sport would an athlete perform a "Fosbury Flop"?', answer: "High jump" },
+      { kicker: "Hard trivia", prompt: "How many players from each side are on the field in rugby union (not counting substitutes)?", answer: "15" },
+      { kicker: "Hard trivia", prompt: "Which country hosted the first modern Olympic Games in 1896?", answer: "Greece (Athens)" },
+      { kicker: "Hard trivia", prompt: "What is the official rim diameter of a basketball hoop, in inches?", answer: "18 inches" },
+      { kicker: "Hard trivia", prompt: "In chess, what is it called when a king isn't in check but has no legal move — ending the game as a draw?", answer: "Stalemate" },
+      { kicker: "Hard trivia", prompt: "Which Jamaican sprinter set the still-standing 100m world record of 9.58 seconds?", answer: "Usain Bolt" },
+      { kicker: "Hard trivia", prompt: "What is the maximum number of clubs a golfer is allowed to carry in their bag during a round?", answer: "14" },
+      { kicker: "Hard trivia", prompt: "What is the highest possible break in a single visit in snooker?", answer: "147" },
+      { kicker: "Hard trivia", prompt: "Which country won the very first FIFA World Cup in 1930?", answer: "Uruguay" },
+      { kicker: "Hard trivia", prompt: 'Test cricket\'s oldest rivalry, "The Ashes," is contested between which two countries?', answer: "England and Australia" },
+      { kicker: "Hard trivia", prompt: "How many rounds are in a standard professional world championship boxing match?", answer: "12" },
+      { kicker: "Hard trivia", prompt: "Which country has won the most Olympic gold medals in history overall?", answer: "United States" },
+      { kicker: "Hard trivia", prompt: "What is the term for a single player scoring three goals in one soccer match?", answer: "Hat-trick" },
+      { kicker: "Hard trivia", prompt: 'In American football, how many points is a "safety" worth?', answer: "2" },
+      { kicker: "Hard trivia", prompt: 'Which sport uses the term "love" to mean a score of zero?', answer: "Tennis" },
+      { kicker: "Hard trivia", prompt: "How many total Olympic gold medals did swimmer Michael Phelps win across his career?", answer: "23" },
+      { kicker: "Hard trivia", prompt: "Which country has won the most Olympic gold medals in field hockey?", answer: "India" },
+      { kicker: "Hard trivia", prompt: "Which country won the inaugural Rugby World Cup in 1987?", answer: "New Zealand" },
+      { kicker: "Hard trivia", prompt: "In golf, what is the term for finishing a hole one stroke under par?", answer: "Birdie" },
+      { kicker: "Hard trivia", prompt: "Which is the only Grand Slam tennis tournament played on clay courts?", answer: "The French Open (Roland Garros)" },
+      { kicker: "Hard trivia", prompt: "How many points is a try worth in rugby union, before the conversion kick?", answer: "5" },
+      { kicker: "Hard trivia", prompt: "Which country topped the gold medal table at the 2008 Beijing Olympics?", answer: "China" },
+      { kicker: "Hard trivia", prompt: "In baseball, how many strikes make an out?", answer: "3" },
+      { kicker: "Hard trivia", prompt: "Which Brazilian footballer, widely regarded as one of the greatest ever, won three FIFA World Cups (1958, 1962, 1970)?", answer: "Pelé" },
+      { kicker: "Hard trivia", prompt: "What is the cricket term for a batsman scoring 100 runs in a single innings?", answer: "A century" },
+      { kicker: "Hard trivia", prompt: "How long is a standard Olympic swimming pool, in meters?", answer: "50 meters" },
+      { kicker: "Hard trivia", prompt: "Which country has won the men's tennis Davis Cup the most times in its history?", answer: "United States" },
+    ],
+  },
+  {
+    key: "food",
+    icon: "🍜",
+    title: "Food & Cuisine",
+    budget: "~8 min",
+    questions: [
+      { kicker: "Hard trivia", prompt: "Ethiopia's berbere spice blend is primarily built around which ingredient?", answer: "Dried chili peppers" },
+      { kicker: "Hard trivia", prompt: "Traditional Korean kimchi is most commonly fermented using which vegetable as its base?", answer: "Napa cabbage" },
+      { kicker: "Hard trivia", prompt: "Cassoulet, a slow-cooked bean-and-meat casserole, originates from which region of France?", answer: "Languedoc, in the south (Toulouse/Castelnaudary)" },
+      { kicker: "Hard trivia", prompt: "Black pepper, white pepper, and green peppercorns all come from the same plant — name it.", answer: "Piper nigrum (the pepper vine)" },
+      { kicker: "Hard trivia", prompt: "Sashimi differs from sushi in that it never includes what?", answer: "Vinegared rice" },
+      { kicker: "Hard trivia", prompt: 'The croissant\'s ancestor, the "kipferl," originated in which country?', answer: "Austria" },
+      { kicker: "Hard trivia", prompt: "What grain is traditional Ethiopian injera bread made from?", answer: "Teff" },
+      { kicker: "Hard trivia", prompt: "What cheese is traditionally used on a classic Margherita pizza?", answer: "Mozzarella (buffalo mozzarella, traditionally)" },
+      { kicker: "Hard trivia", prompt: 'Ceviche — raw fish "cooked" in citrus juice — is most closely associated with which South American country?', answer: "Peru" },
+      { kicker: "Hard trivia", prompt: "What is the main ingredient in traditional Spanish gazpacho?", answer: "Tomatoes" },
+      { kicker: "Hard trivia", prompt: "Which spice, from the stigma of the crocus flower, is the most expensive by weight?", answer: "Saffron" },
+      { kicker: "Hard trivia", prompt: "Japan's gyoza dumpling was adapted from which country's jiaozi?", answer: "China" },
+      { kicker: "Hard trivia", prompt: "What term describes the flaky, buttery layered dough technique used to make croissants?", answer: "Laminated dough" },
+      { kicker: "Hard trivia", prompt: "What ingredient gives Thai tom yum soup its signature sour flavor?", answer: "Lime juice (with lemongrass and tamarind)" },
+      { kicker: "Hard trivia", prompt: "The dosa is believed to have originated in which region of India?", answer: "South India (Tamil Nadu/Karnataka)" },
+      { kicker: "Hard trivia", prompt: "Feta, a brined curd cheese usually made from sheep's or goat's milk, traditionally comes from which country?", answer: "Greece" },
+      { kicker: "Hard trivia", prompt: 'What does the Italian phrase "al dente," used to describe pasta doneness, literally translate to?', answer: '"To the tooth"' },
+      { kicker: "Hard trivia", prompt: "What fermented soybean paste is the base of Japanese miso soup?", answer: "Miso" },
+      { kicker: "Hard trivia", prompt: "Despite its strong link to Chinese restaurants, the fortune cookie is generally credited to which country?", answer: "United States (California, likely Japanese-American origin)" },
+      { kicker: "Hard trivia", prompt: "Which country is credited as the origin of kombucha, the fermented tea drink believed to date back over 2,000 years?", answer: "China (Northeast China/Manchuria)" },
+      { kicker: "Hard trivia", prompt: "Harissa, a hot chili paste, is a staple condiment especially associated with which North African country?", answer: "Tunisia" },
+      { kicker: "Hard trivia", prompt: "What rum-based dessert, flambéed tableside, was invented in New Orleans in the 1950s?", answer: "Bananas Foster" },
+      { kicker: "Hard trivia", prompt: "Kefir, a fermented milk drink, is believed to have originated in which mountain region?", answer: "The North Caucasus" },
+      { kicker: "Hard trivia", prompt: 'What is the Japanese term for the savory "fifth taste," identified alongside sweet, sour, salty, and bitter?', answer: "Umami" },
+      { kicker: "Hard trivia", prompt: 'Which spice, called "the king of spices" and historically worth its weight in gold, is native to India\'s Malabar Coast?', answer: "Black pepper" },
+      { kicker: "Hard trivia", prompt: "Baklava, a sweet pastry of layered filo and nuts, is claimed by the cuisines of which broader region spanning several countries?", answer: "The Ottoman/Middle Eastern & Mediterranean region" },
+      { kicker: "Hard trivia", prompt: "What type of mold is responsible for the distinctive blue veins in cheeses like Roquefort and Gorgonzola?", answer: "Penicillium" },
+      { kicker: "Hard trivia", prompt: "Which country is the world's largest producer of vanilla, most of it grown on one island?", answer: "Madagascar" },
+      { kicker: "Hard trivia", prompt: "Pho, Vietnam's iconic noodle soup, is believed to have originated in which region of the country?", answer: "Northern Vietnam, around Hanoi" },
+      {
+        kicker: "Wager finale — stake up to 5 pts",
+        prompt: "This agave spirit is legally required to be produced in specific regions of Mexico, mainly Jalisco — name it.",
+        answer: "Tequila",
+        finale: true,
+      },
+    ],
+  },
+];
+
+// The game plays as 3 rounds, each pairing two categories back-to-back.
+export const ROUND_GROUPS: RoundGroup[] = [
+  { title: "Round 1", roundIndexes: [0, 1] }, // Bollywood + Flags
+  { title: "Round 2", roundIndexes: [2, 3] }, // Capitals + Festivals
+  { title: "Round 3", roundIndexes: [4, 5] }, // Sports + Food
+];
+
+export function groupIndexForRound(roundIdx: number): number {
+  for (let g = 0; g < ROUND_GROUPS.length; g++) {
+    if (ROUND_GROUPS[g].roundIndexes.includes(roundIdx)) return g;
+  }
+  return 0;
+}
