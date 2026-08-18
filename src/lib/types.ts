@@ -21,6 +21,7 @@ export interface TextQuestion {
   prompt: string;
   answer: string;
   finale?: boolean;
+  tough?: boolean;
   flag?: undefined;
 }
 
@@ -31,6 +32,7 @@ export interface FlagQuestion {
   kicker?: undefined;
   prompt?: undefined;
   finale?: boolean;
+  tough?: boolean;
 }
 
 export type Question = TextQuestion | FlagQuestion;
@@ -47,8 +49,6 @@ export interface RoundGroup {
   title: string;
   roundIndexes: number[];
 }
-
-export type LineupMode = "random" | "manual";
 
 export type Screen = "setup" | "reveal" | "lineup" | "game" | "end";
 

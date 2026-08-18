@@ -1,6 +1,5 @@
-import { ROUNDS } from "./data";
 import type { GameState } from "./gameReducer";
-import type { DiffKey, LineupMode } from "./types";
+import type { DiffKey } from "./types";
 
 export interface GameResultsPayload {
   numRounds: number;
@@ -11,13 +10,11 @@ export interface GameResultsPayload {
     memberNames: string[];
     finalScore: number;
   }[];
-  lineupChoices: {
+  playerOrders: {
     teamKey: string;
     teamName: string;
-    categoryKey: string;
-    categoryTitle: string;
+    position: number;
     playerName: string;
-    mode: LineupMode;
   }[];
   difficultyPicks: {
     teamKey: string;
@@ -37,20 +34,11 @@ export function buildGameResultsPayload(state: GameState): GameResultsPayload {
     finalScore: state.scores[team.id] ?? 0,
   }));
 
-  const lineupChoices: GameResultsPayload["lineupChoices"] = [];
+  const playerOrders: GameResultsPayload["playerOrders"] = [];
   state.teams.forEach((team) => {
-    const teamLineup = state.lineup[team.id] ?? {};
-    const mode = state.lineupMode[team.id] ?? "manual";
-    Object.entries(teamLineup).forEach(([categoryKey, playerName]) => {
-      const round = ROUNDS.find((r) => r.key === categoryKey);
-      lineupChoices.push({
-        teamKey: team.id,
-        teamName: team.name,
-        categoryKey,
-        categoryTitle: round ? round.title.split(" — ")[0] : categoryKey,
-        playerName,
-        mode,
-      });
+    const order = state.playerOrder[team.id] ?? team.members;
+    order.forEach((playerName, idx) => {
+      playerOrders.push({ teamKey: team.id, teamName: team.name, position: idx + 1, playerName });
     });
   });
 
@@ -62,7 +50,7 @@ export function buildGameResultsPayload(state: GameState): GameResultsPayload {
     difficulty: entry.difficulty,
   }));
 
-  return { numRounds: state.numRounds, teams, lineupChoices, difficultyPicks };
+  return { numRounds: state.numRounds, teams, playerOrders, difficultyPicks };
 }
 
 export async function submitGameResults(payload: GameResultsPayload): Promise<{ ok: boolean }> {

@@ -47,9 +47,9 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
   if (!game) notFound();
 
-  const lineupByTeam = new Map<string, typeof game.lineupChoices>();
-  game.lineupChoices.forEach((l) => {
-    lineupByTeam.set(l.teamKey, [...(lineupByTeam.get(l.teamKey) ?? []), l]);
+  const orderByTeam = new Map<string, typeof game.playerOrders>();
+  game.playerOrders.forEach((o) => {
+    orderByTeam.set(o.teamKey, [...(orderByTeam.get(o.teamKey) ?? []), o]);
   });
 
   const diffCountsByTeam = new Map<string, Record<DiffKey, number>>();
@@ -93,10 +93,10 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
         ))}
       </div>
 
-      <h2 className="mb-3.5 text-lg font-bold">Who each team put where</h2>
+      <h2 className="mb-3.5 text-lg font-bold">Calling order each team set</h2>
       <div className="mb-8 grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3.5">
         {game.teams.map((team) => {
-          const choices = lineupByTeam.get(team.teamKey) ?? [];
+          const order = orderByTeam.get(team.teamKey) ?? [];
           return (
             <div
               key={team.teamKey}
@@ -104,23 +104,16 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               style={{ borderTop: `5px solid var(${teamColorVar(team.teamKey)})` }}
             >
               <h3 className="mb-2.5 font-display text-base font-extrabold">{team.teamName}</h3>
-              {choices.length === 0 ? (
-                <div className="text-sm italic text-ink-faint">No lineup recorded.</div>
+              {order.length === 0 ? (
+                <div className="text-sm italic text-ink-faint">No order recorded.</div>
               ) : (
-                choices.map((c) => (
+                order.map((o) => (
                   <div
-                    key={c.categoryKey}
+                    key={o.position}
                     className="flex items-center gap-2 border-b border-line py-1.5 text-sm last:border-b-0"
                   >
-                    <span className="text-ink-faint">{c.categoryTitle}</span>
-                    <span className="ml-auto font-semibold">{c.playerName}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[0.65rem] font-bold uppercase ${
-                        c.mode === "random" ? "bg-accent-soft text-accent" : "bg-good-soft text-good"
-                      }`}
-                    >
-                      {c.mode}
-                    </span>
+                    <span className="w-5 font-mono text-ink-faint">{o.position}</span>
+                    <span className="ml-auto font-semibold">{o.playerName}</span>
                   </div>
                 ))
               )}

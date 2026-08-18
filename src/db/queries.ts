@@ -1,5 +1,5 @@
 import { getDb } from "./client";
-import type { DiffKey, LineupMode } from "@/lib/types";
+import type { DiffKey } from "@/lib/types";
 
 export interface GameListRow {
   id: string;
@@ -42,7 +42,6 @@ export interface OverallStats {
   totalPlayers: number;
   totalDifficultyPicks: number;
   difficultyBreakdown: Record<DiffKey, number>;
-  modeBreakdown: Record<LineupMode, number>;
 }
 
 export async function getOverallStats(): Promise<OverallStats> {
@@ -51,9 +50,6 @@ export async function getOverallStats(): Promise<OverallStats> {
   const [playerCount] = await sql<{ n: string }[]>`SELECT count(DISTINCT player_name) AS n FROM difficulty_picks`;
   const diffRows = await sql<{ difficulty: string; n: string }[]>`
     SELECT difficulty, count(*) AS n FROM difficulty_picks GROUP BY difficulty
-  `;
-  const modeRows = await sql<{ mode: string; n: string }[]>`
-    SELECT mode, count(*) AS n FROM lineup_choices GROUP BY mode
   `;
 
   const difficultyBreakdown: Record<DiffKey, number> = { easy: 0, medium: 0, hard: 0 };
@@ -64,17 +60,11 @@ export async function getOverallStats(): Promise<OverallStats> {
     totalDifficultyPicks += Number(r.n);
   });
 
-  const modeBreakdown: Record<LineupMode, number> = { random: 0, manual: 0 };
-  modeRows.forEach((r) => {
-    modeBreakdown[r.mode as LineupMode] = Number(r.n);
-  });
-
   return {
     totalGames: Number(gameCount?.n ?? 0),
     totalPlayers: Number(playerCount?.n ?? 0),
     totalDifficultyPicks,
     difficultyBreakdown,
-    modeBreakdown,
   };
 }
 
@@ -86,13 +76,11 @@ export interface GameTeamRow {
   finalScore: number;
 }
 
-export interface LineupChoiceRow {
+export interface PlayerOrderRow {
   teamKey: string;
   teamName: string;
-  categoryKey: string;
-  categoryTitle: string;
+  position: number;
   playerName: string;
-  mode: LineupMode;
 }
 
 export interface DifficultyPickRow {
@@ -111,7 +99,7 @@ export interface GameDetail {
   winnerTeamKey: string | null;
   winnerTeamName: string | null;
   teams: GameTeamRow[];
-  lineupChoices: LineupChoiceRow[];
+  playerOrders: PlayerOrderRow[];
   difficultyPicks: DifficultyPickRow[];
 }
 
@@ -127,9 +115,9 @@ export async function getGameDetail(gameId: string): Promise<GameDetail | null> 
     { team_key: string; team_name: string; captain_name: string | null; member_names: string[]; final_score: string }[]
   >`SELECT team_key, team_name, captain_name, member_names, final_score FROM game_teams WHERE game_id = ${gameId} ORDER BY team_key`;
 
-  const lineupRows = await sql<
-    { team_key: string; team_name: string; category_key: string; category_title: string; player_name: string; mode: string }[]
-  >`SELECT team_key, team_name, category_key, category_title, player_name, mode FROM lineup_choices WHERE game_id = ${gameId} ORDER BY team_key, category_key`;
+  const orderRows = await sql<
+    { team_key: string; team_name: string; position: string; player_name: string }[]
+  >`SELECT team_key, team_name, position, player_name FROM player_orders WHERE game_id = ${gameId} ORDER BY team_key, position`;
 
   const diffRows = await sql<
     { team_key: string; team_name: string; player_name: string; round_title: string; difficulty: string; picked_at: string }[]
@@ -148,13 +136,11 @@ export async function getGameDetail(gameId: string): Promise<GameDetail | null> 
       memberNames: t.member_names,
       finalScore: Number(t.final_score),
     })),
-    lineupChoices: lineupRows.map((l) => ({
-      teamKey: l.team_key,
-      teamName: l.team_name,
-      categoryKey: l.category_key,
-      categoryTitle: l.category_title,
-      playerName: l.player_name,
-      mode: l.mode as LineupMode,
+    playerOrders: orderRows.map((o) => ({
+      teamKey: o.team_key,
+      teamName: o.team_name,
+      position: Number(o.position),
+      playerName: o.player_name,
     })),
     difficultyPicks: diffRows.map((d) => ({
       teamKey: d.team_key,

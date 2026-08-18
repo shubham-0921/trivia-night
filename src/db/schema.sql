@@ -19,19 +19,30 @@ CREATE TABLE IF NOT EXISTS game_teams (
 );
 CREATE INDEX IF NOT EXISTS game_teams_game_id_idx ON game_teams (game_id);
 
--- One row per category a team drafted, per game: which player got the category
--- and whether the team chose it themselves or let the app randomize it.
+-- Superseded by player_orders (kept so historical rows from earlier games still resolve).
 CREATE TABLE IF NOT EXISTS lineup_choices (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   game_id         UUID NOT NULL REFERENCES games(id),
   team_key        TEXT NOT NULL,
   team_name       TEXT NOT NULL,
-  category_key    TEXT NOT NULL,      -- bollywood, flags, capitals, ...
+  category_key    TEXT NOT NULL,
   category_title  TEXT NOT NULL,
   player_name     TEXT NOT NULL,
-  mode            TEXT NOT NULL       -- 'random' | 'manual'
+  mode            TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS lineup_choices_game_id_idx ON lineup_choices (game_id);
+
+-- One row per player per game: the fixed order (1-based position) that team set for
+-- who gets called first, second, third, etc.
+CREATE TABLE IF NOT EXISTS player_orders (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id       UUID NOT NULL REFERENCES games(id),
+  team_key      TEXT NOT NULL,
+  team_name     TEXT NOT NULL,
+  position      INT NOT NULL,
+  player_name   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS player_orders_game_id_idx ON player_orders (game_id);
 
 -- One row per Easy/Medium/Hard pick made during play, tied to the person who made it.
 CREATE TABLE IF NOT EXISTS difficulty_picks (

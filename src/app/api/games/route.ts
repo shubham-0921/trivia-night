@@ -10,7 +10,7 @@ function isValidPayload(body: unknown): body is GameResultsPayload {
   return (
     typeof b.numRounds === "number" &&
     Array.isArray(b.teams) &&
-    Array.isArray(b.lineupChoices) &&
+    Array.isArray(b.playerOrders) &&
     Array.isArray(b.difficultyPicks)
   );
 }
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Malformed game results payload" }, { status: 400 });
   }
 
-  const { numRounds, teams, lineupChoices, difficultyPicks } = body;
+  const { numRounds, teams, playerOrders, difficultyPicks } = body;
 
   let sql;
   try {
@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
         `;
       }
 
-      for (const choice of lineupChoices) {
+      for (const order of playerOrders) {
         await tx`
-          INSERT INTO lineup_choices (game_id, team_key, team_name, category_key, category_title, player_name, mode)
-          VALUES (${game.id}, ${choice.teamKey}, ${choice.teamName}, ${choice.categoryKey}, ${choice.categoryTitle}, ${choice.playerName}, ${choice.mode})
+          INSERT INTO player_orders (game_id, team_key, team_name, position, player_name)
+          VALUES (${game.id}, ${order.teamKey}, ${order.teamName}, ${order.position}, ${order.playerName})
         `;
       }
 

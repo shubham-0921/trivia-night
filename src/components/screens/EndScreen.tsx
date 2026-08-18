@@ -5,7 +5,7 @@ import { useGame } from "@/context/GameContext";
 import { Button } from "@/components/ui/Button";
 import { Eyebrow } from "@/components/ui/Pill";
 import { Confetti, ConfettiHandle } from "@/components/Confetti";
-import { DIFF_LEVELS, ROUNDS } from "@/lib/data";
+import { DIFF_LEVELS } from "@/lib/data";
 import { buildGameResultsPayload, submitGameResults } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import type { DiffKey } from "@/lib/types";
@@ -83,32 +83,34 @@ export function EndScreen() {
         </div>
 
         <div className="flex flex-col items-center">
-          <h3 className="mb-5 mt-10 text-lg font-bold">Who each team put where</h3>
+          <h3 className="mb-5 mt-10 text-lg font-bold">Who each team called, in order</h3>
           {!lineupRevealed ? (
             <Button variant="primary" onClick={() => setLineupRevealed(true)}>
-              🔍 Reveal team lineups
+              🔍 Reveal calling order
             </Button>
           ) : (
             <div className="grid w-full max-w-[900px] animate-reveal-in grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3.5 text-left">
-              {state.teams.map((team) => (
-                <div
-                  key={team.id}
-                  className="rounded-[18px] border border-line bg-bg-raised p-4 card-shadow"
-                  style={{ borderTop: `5px solid var(${team.color})` }}
-                >
-                  <h4 className="mb-2.5 font-display text-base font-extrabold">{team.name}</h4>
-                  {ROUNDS.map((round) => (
-                    <div
-                      key={round.key}
-                      className="flex items-center gap-2 border-b border-line py-1.5 text-sm last:border-b-0"
-                    >
-                      <span className="flex-shrink-0">{round.icon}</span>
-                      <span className="min-w-[90px] text-ink-faint">{round.title.split(" — ")[0]}</span>
-                      <span className="ml-auto font-semibold">{state.lineup[team.id]?.[round.key] ?? "—"}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
+              {state.teams.map((team) => {
+                const order = state.playerOrder[team.id] ?? team.members;
+                return (
+                  <div
+                    key={team.id}
+                    className="rounded-[18px] border border-line bg-bg-raised p-4 card-shadow"
+                    style={{ borderTop: `5px solid var(${team.color})` }}
+                  >
+                    <h4 className="mb-2.5 font-display text-base font-extrabold">{team.name}</h4>
+                    {order.map((name, idx) => (
+                      <div
+                        key={name}
+                        className="flex items-center gap-2 border-b border-line py-1.5 text-sm last:border-b-0"
+                      >
+                        <span className="w-5 font-mono text-ink-faint">{idx + 1}</span>
+                        <span className="ml-auto font-semibold">{name}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

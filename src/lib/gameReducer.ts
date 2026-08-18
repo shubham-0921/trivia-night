@@ -10,7 +10,6 @@ import {
 import type {
   DiffKey,
   DifficultyLogEntry,
-  LineupMode,
   Question,
   Screen,
   Team,
@@ -35,11 +34,9 @@ export interface GameState {
   captains: Record<TeamId, string>;
   selectedChip: string | null;
 
-  // category lineup draft
-  lineup: Record<TeamId, Record<string, string>>;
-  lineupMode: Record<TeamId, LineupMode>;
+  // calling order: the fixed sequence each team's members get called in, set on the Lineup screen
+  playerOrder: Record<TeamId, string[]>;
   lineupTeamIndex: number;
-  lineupSelectedMember: string | null;
 
   // active game
   activeQuestions: Question[][];
@@ -87,10 +84,8 @@ export function initialState(): GameState {
     captains: {},
     selectedChip: null,
 
-    lineup: {},
-    lineupMode: {},
+    playerOrder: {},
     lineupTeamIndex: 0,
-    lineupSelectedMember: null,
 
     activeQuestions: [],
     currentRound: 0,
@@ -119,12 +114,24 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+// The opening of every round should come out swinging: the first TOUGH_OPENER_COUNT
+// turns are always drawn from questions tagged `tough`, so the game starts hard no
+// matter how the rest of the pool gets shuffled in behind them.
+const TOUGH_OPENER_COUNT = 6;
+
 function buildActiveQuestionSets(): Question[][] {
   return ROUNDS.map((round) => {
     const finale = round.questions.filter((q) => q.finale);
-    const rest = round.questions.filter((q) => !q.finale);
-    const picked = shuffle(rest).slice(0, Math.max(0, TURNS_PER_ROUND - finale.length));
-    return picked.concat(finale);
+    const tough = round.questions.filter((q) => q.tough && !q.finale);
+    const rest = round.questions.filter((q) => !q.tough && !q.finale);
+
+    const openers = shuffle(tough).slice(0, TOUGH_OPENER_COUNT);
+    const openerSet = new Set(openers);
+    const remainingPool = [...tough.filter((q) => !openerSet.has(q)), ...rest];
+    const fillerCount = Math.max(0, TURNS_PER_ROUND - finale.length - openers.length);
+    const filler = shuffle(remainingPool).slice(0, fillerCount);
+
+    return [...openers, ...filler, ...finale];
   });
 }
 
@@ -132,10 +139,14 @@ export function getRoundQuestions(state: GameState, roundIndex: number): Questio
   return state.activeQuestions[roundIndex] ?? ROUNDS[roundIndex].questions;
 }
 
+// Whose turn it is: teams cycle in order (t1,t2,t3,...) every question, and each team's
+// own turns step through their fixed calling order (set on the Lineup screen), wrapping
+// around once everyone's had a turn.
 export function getTurnFor(state: GameState, roundIndex: number, qIndex: number): TurnInfo {
   const team = state.teams[qIndex % state.teams.length];
-  const round = ROUNDS[roundIndex];
-  const player = state.lineup[team.id]?.[round.key] || team.members[0] || "TBD";
+  const order = state.playerOrder[team.id]?.length ? state.playerOrder[team.id] : team.members;
+  const cycle = Math.floor(qIndex / state.teams.length);
+  const player = order.length ? order[cycle % order.length] : "TBD";
   return { teamId: team.id, teamName: team.name, teamColor: team.color, name: player };
 }
 
@@ -151,14 +162,10 @@ export type Action =
   | { type: "SET_NUM_ROUNDS"; numRounds: number }
   | { type: "GO_TO_REVEAL" }
   | { type: "GO_TO_LINEUP" }
-  // lineup draft
+  // calling-order lineup screen
   | { type: "SET_LINEUP_TEAM_INDEX"; index: number }
-  | { type: "SET_LINEUP_SELECTED_MEMBER"; name: string | null }
-  | { type: "SET_LINEUP_MODE"; teamId: TeamId; mode: LineupMode }
-  | { type: "CHANGE_LINEUP_MODE"; teamId: TeamId }
-  | { type: "RANDOMIZE_TEAM_LINEUP"; teamId: TeamId }
-  | { type: "SET_LINEUP_ASSIGNMENT"; teamId: TeamId; roundKey: string; player: string }
-  | { type: "CLEAR_LINEUP_ASSIGNMENT"; teamId: TeamId; roundKey: string }
+  | { type: "MOVE_PLAYER_ORDER"; teamId: TeamId; name: string; direction: "up" | "down" }
+  | { type: "SHUFFLE_PLAYER_ORDER"; teamId: TeamId }
   | { type: "CONFIRM_LINEUP_AND_START" }
   // game
   | { type: "SELECT_DIFFICULTY"; diff: DiffKey }
@@ -257,46 +264,30 @@ export function gameReducer(state: GameState, action: Action): GameState {
     case "GO_TO_REVEAL":
       return { ...state, screen: "reveal" };
 
-    case "GO_TO_LINEUP":
-      return { ...state, screen: "lineup", lineupTeamIndex: 0, lineupSelectedMember: null };
+    case "GO_TO_LINEUP": {
+      const playerOrder: Record<TeamId, string[]> = {};
+      state.teams.forEach((t) => {
+        playerOrder[t.id] = [...t.members];
+      });
+      return { ...state, screen: "lineup", lineupTeamIndex: 0, playerOrder };
+    }
 
     case "SET_LINEUP_TEAM_INDEX":
-      return { ...state, lineupTeamIndex: action.index, lineupSelectedMember: null };
+      return { ...state, lineupTeamIndex: action.index };
 
-    case "SET_LINEUP_SELECTED_MEMBER":
-      return { ...state, lineupSelectedMember: action.name };
-
-    case "SET_LINEUP_MODE": {
-      const lineupMode = { ...state.lineupMode, [action.teamId]: action.mode };
-      let lineup = state.lineup;
-      if (action.mode === "random") {
-        lineup = randomizeLineupFor(state, action.teamId);
-      }
-      return { ...state, lineupMode, lineup };
+    case "MOVE_PLAYER_ORDER": {
+      const order = [...(state.playerOrder[action.teamId] ?? [])];
+      const i = order.indexOf(action.name);
+      if (i === -1) return state;
+      const j = action.direction === "up" ? i - 1 : i + 1;
+      if (j < 0 || j >= order.length) return state;
+      [order[i], order[j]] = [order[j], order[i]];
+      return { ...state, playerOrder: { ...state.playerOrder, [action.teamId]: order } };
     }
 
-    case "CHANGE_LINEUP_MODE": {
-      const lineupMode = { ...state.lineupMode };
-      delete lineupMode[action.teamId];
-      return { ...state, lineupMode, lineupSelectedMember: null };
-    }
-
-    case "RANDOMIZE_TEAM_LINEUP":
-      return { ...state, lineup: randomizeLineupFor(state, action.teamId) };
-
-    case "SET_LINEUP_ASSIGNMENT": {
-      const teamLineup = { ...(state.lineup[action.teamId] ?? {}), [action.roundKey]: action.player };
-      return {
-        ...state,
-        lineup: { ...state.lineup, [action.teamId]: teamLineup },
-        lineupSelectedMember: null,
-      };
-    }
-
-    case "CLEAR_LINEUP_ASSIGNMENT": {
-      const teamLineup = { ...(state.lineup[action.teamId] ?? {}) };
-      delete teamLineup[action.roundKey];
-      return { ...state, lineup: { ...state.lineup, [action.teamId]: teamLineup } };
+    case "SHUFFLE_PLAYER_ORDER": {
+      const order = state.playerOrder[action.teamId] ?? [];
+      return { ...state, playerOrder: { ...state.playerOrder, [action.teamId]: shuffle(order) } };
     }
 
     case "CONFIRM_LINEUP_AND_START": {
@@ -458,10 +449,8 @@ export function gameReducer(state: GameState, action: Action): GameState {
         currentQ: 0,
         revealedAnswers: {},
         hintsShown: {},
-        lineup: {},
-        lineupMode: {},
+        playerOrder: {},
         lineupTeamIndex: 0,
-        lineupSelectedMember: null,
         turnDifficulty: {},
         difficultyChoices: {},
         difficultyLog: [],
@@ -475,14 +464,4 @@ export function gameReducer(state: GameState, action: Action): GameState {
     default:
       return state;
   }
-}
-
-function randomizeLineupFor(state: GameState, teamId: TeamId): GameState["lineup"] {
-  const team = state.teams.find((t) => t.id === teamId);
-  if (!team || team.members.length === 0) return state.lineup;
-  const teamLineup = { ...(state.lineup[teamId] ?? {}) };
-  ROUNDS.slice(0, activeRoundIndexCount(state)).forEach((round) => {
-    teamLineup[round.key] = team.members[Math.floor(Math.random() * team.members.length)];
-  });
-  return { ...state.lineup, [teamId]: teamLineup };
 }
