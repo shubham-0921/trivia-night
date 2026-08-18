@@ -76,10 +76,11 @@ export interface GameTeamRow {
   finalScore: number;
 }
 
-export interface PlayerOrderRow {
+export interface CategoryChoiceRow {
   teamKey: string;
   teamName: string;
-  position: number;
+  categoryKey: string;
+  categoryTitle: string;
   playerName: string;
 }
 
@@ -99,7 +100,7 @@ export interface GameDetail {
   winnerTeamKey: string | null;
   winnerTeamName: string | null;
   teams: GameTeamRow[];
-  playerOrders: PlayerOrderRow[];
+  categoryChoices: CategoryChoiceRow[];
   difficultyPicks: DifficultyPickRow[];
 }
 
@@ -115,9 +116,9 @@ export async function getGameDetail(gameId: string): Promise<GameDetail | null> 
     { team_key: string; team_name: string; captain_name: string | null; member_names: string[]; final_score: string }[]
   >`SELECT team_key, team_name, captain_name, member_names, final_score FROM game_teams WHERE game_id = ${gameId} ORDER BY team_key`;
 
-  const orderRows = await sql<
-    { team_key: string; team_name: string; position: string; player_name: string }[]
-  >`SELECT team_key, team_name, position, player_name FROM player_orders WHERE game_id = ${gameId} ORDER BY team_key, position`;
+  const choiceRows = await sql<
+    { team_key: string; team_name: string; category_key: string; category_title: string; player_name: string }[]
+  >`SELECT team_key, team_name, category_key, category_title, player_name FROM category_choices WHERE game_id = ${gameId} ORDER BY team_key, category_key`;
 
   const diffRows = await sql<
     { team_key: string; team_name: string; player_name: string; round_title: string; difficulty: string; picked_at: string }[]
@@ -136,11 +137,12 @@ export async function getGameDetail(gameId: string): Promise<GameDetail | null> 
       memberNames: t.member_names,
       finalScore: Number(t.final_score),
     })),
-    playerOrders: orderRows.map((o) => ({
-      teamKey: o.team_key,
-      teamName: o.team_name,
-      position: Number(o.position),
-      playerName: o.player_name,
+    categoryChoices: choiceRows.map((c) => ({
+      teamKey: c.team_key,
+      teamName: c.team_name,
+      categoryKey: c.category_key,
+      categoryTitle: c.category_title,
+      playerName: c.player_name,
     })),
     difficultyPicks: diffRows.map((d) => ({
       teamKey: d.team_key,

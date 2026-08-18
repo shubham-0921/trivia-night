@@ -1,3 +1,4 @@
+import { ROUNDS } from "./data";
 import type { GameState } from "./gameReducer";
 import type { DiffKey } from "./types";
 
@@ -10,10 +11,11 @@ export interface GameResultsPayload {
     memberNames: string[];
     finalScore: number;
   }[];
-  playerOrders: {
+  categoryChoices: {
     teamKey: string;
     teamName: string;
-    position: number;
+    categoryKey: string;
+    categoryTitle: string;
     playerName: string;
   }[];
   difficultyPicks: {
@@ -34,11 +36,18 @@ export function buildGameResultsPayload(state: GameState): GameResultsPayload {
     finalScore: state.scores[team.id] ?? 0,
   }));
 
-  const playerOrders: GameResultsPayload["playerOrders"] = [];
+  const categoryChoices: GameResultsPayload["categoryChoices"] = [];
   state.teams.forEach((team) => {
-    const order = state.playerOrder[team.id] ?? team.members;
-    order.forEach((playerName, idx) => {
-      playerOrders.push({ teamKey: team.id, teamName: team.name, position: idx + 1, playerName });
+    const teamLineup = state.lineup[team.id] ?? {};
+    Object.entries(teamLineup).forEach(([categoryKey, playerName]) => {
+      const round = ROUNDS.find((r) => r.key === categoryKey);
+      categoryChoices.push({
+        teamKey: team.id,
+        teamName: team.name,
+        categoryKey,
+        categoryTitle: round ? round.title.split(" — ")[0] : categoryKey,
+        playerName,
+      });
     });
   });
 
@@ -50,7 +59,7 @@ export function buildGameResultsPayload(state: GameState): GameResultsPayload {
     difficulty: entry.difficulty,
   }));
 
-  return { numRounds: state.numRounds, teams, playerOrders, difficultyPicks };
+  return { numRounds: state.numRounds, teams, categoryChoices, difficultyPicks };
 }
 
 export async function submitGameResults(payload: GameResultsPayload): Promise<{ ok: boolean }> {

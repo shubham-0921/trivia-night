@@ -50,6 +50,8 @@ export interface RoundGroup {
   roundIndexes: number[];
 }
 
+export type LineupMode = "random" | "manual";
+
 export type Screen = "setup" | "reveal" | "lineup" | "game" | "end";
 
 export interface DifficultyLogEntry {

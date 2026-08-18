@@ -1,25 +1,42 @@
 "use client";
 
+import { useState } from "react";
 import { useGame } from "@/context/GameContext";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { Eyebrow } from "@/components/ui/Pill";
 import { TeamDot } from "@/components/ui/TeamDot";
+import { ROUNDS } from "@/lib/data";
+import { activeRoundIndexCount } from "@/lib/gameReducer";
 import { cn } from "@/lib/cn";
 
 export function LineupScreen() {
   const { state, dispatch } = useGame();
+  const [selectedMember, setSelectedMember] = useState<string | null>(null);
+  const activeRounds = ROUNDS.slice(0, activeRoundIndexCount(state));
 
   const team = state.teams[Math.min(state.lineupTeamIndex, state.teams.length - 1)] ?? state.teams[0];
-  const order = state.playerOrder[team.id] ?? team.members;
+  const teamLineup = state.lineup[team.id] ?? {};
+  const mode = state.lineupMode[team.id];
   const isLastTeam = state.lineupTeamIndex === state.teams.length - 1;
+
+  function goToTeam(idx: number) {
+    setSelectedMember(null);
+    dispatch({ type: "SET_LINEUP_TEAM_INDEX", index: idx });
+  }
+
+  function assign(roundKey: string, player: string) {
+    dispatch({ type: "SET_LINEUP_ASSIGNMENT", teamId: team.id, roundKey, player });
+    setSelectedMember(null);
+  }
 
   return (
     <div className="mx-auto max-w-[1100px] px-6 pb-16 pt-8">
-      <Eyebrow>Trivia Night &middot; Calling Order</Eyebrow>
-      <h1 className="text-[clamp(2rem,5vw,2.8rem)] font-extrabold tracking-tight">Who goes when?</h1>
+      <Eyebrow>Trivia Night &middot; Category Draft</Eyebrow>
+      <h1 className="text-[clamp(2rem,5vw,2.8rem)] font-extrabold tracking-tight">Who&apos;s playing what?</h1>
       <p className="mb-7 mt-2 max-w-[60ch] text-[0.98rem] text-ink-soft">
-        One team at a time: set the order your players get called in. Player 1 answers your team&apos;s
-        first turn, player 2 the second, and so on — it wraps back to the top once everyone&apos;s gone.
+        One team at a time: each team first decides whether to be randomly assigned or choose for
+        themselves, then maps a player to every category.
       </p>
 
       <div className="mb-2 flex items-center gap-2.5">
@@ -37,15 +54,17 @@ export function LineupScreen() {
 
       <div className="mb-6 flex gap-1.5">
         {state.teams.map((t, idx) => {
+          const filled = activeRounds.every((r) => !!state.lineup[t.id]?.[r.key]);
           const current = idx === state.lineupTeamIndex;
           return (
             <button
               key={t.id}
               title={t.name}
-              onClick={() => dispatch({ type: "SET_LINEUP_TEAM_INDEX", index: idx })}
+              onClick={() => goToTeam(idx)}
               className={cn(
                 "h-[0.55rem] rounded-full border-0 p-0 transition-all",
-                current ? "w-6" : "w-[0.55rem] bg-good"
+                current ? "w-6" : "w-[0.55rem]",
+                current ? "" : filled ? "bg-good" : "bg-line"
               )}
               style={current ? { background: `var(${t.color})` } : undefined}
             />
@@ -73,69 +92,151 @@ export function LineupScreen() {
         })}
       </div>
 
-      <div className="rounded-[20px] border border-line bg-bg-raised p-5 card-shadow">
-        <h3 className="mb-3 text-base font-semibold">Calling order</h3>
-        {order.length === 0 ? (
-          <div className="text-sm italic text-ink-faint">No players on this team yet.</div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {order.map((name, idx) => (
-              <div
-                key={name}
-                className="flex items-center gap-3 rounded-2xl border border-line bg-bg-sunken py-2.5 pl-4 pr-2.5"
-              >
-                <span className="w-5 text-sm font-mono font-bold text-ink-faint">{idx + 1}</span>
-                <span className="flex-1 font-semibold">{name}</span>
-                <div className="flex gap-1">
-                  <button
-                    disabled={idx === 0}
-                    onClick={() => dispatch({ type: "MOVE_PLAYER_ORDER", teamId: team.id, name, direction: "up" })}
-                    className="rounded-full border-2 border-line px-2 py-1 text-xs font-bold hover:border-accent disabled:opacity-30"
-                    title="Move up"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    disabled={idx === order.length - 1}
-                    onClick={() => dispatch({ type: "MOVE_PLAYER_ORDER", teamId: team.id, name, direction: "down" })}
-                    className="rounded-full border-2 border-line px-2 py-1 text-xs font-bold hover:border-accent disabled:opacity-30"
-                    title="Move down"
-                  >
-                    ↓
-                  </button>
-                </div>
-              </div>
-            ))}
+      {!mode ? (
+        <div>
+          <p className="mb-4 font-display text-xl font-bold">How does this team want to fill their categories?</p>
+          <div className="mb-7 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+            <button
+              onClick={() => dispatch({ type: "SET_LINEUP_MODE", teamId: team.id, mode: "random" })}
+              className="flex flex-col items-start gap-1.5 rounded-[20px] border-2 border-line bg-bg-raised p-6 text-left card-shadow transition-transform hover:-translate-y-0.5 hover:border-accent"
+            >
+              <span className="text-3xl">🎲</span>
+              <span className="font-display text-lg font-extrabold">Random Assign</span>
+              <span className="text-sm font-normal text-ink-soft">
+                Players are shuffled into categories for you — still editable after.
+              </span>
+            </button>
+            <button
+              onClick={() => dispatch({ type: "SET_LINEUP_MODE", teamId: team.id, mode: "manual" })}
+              className="flex flex-col items-start gap-1.5 rounded-[20px] border-2 border-line bg-bg-raised p-6 text-left card-shadow transition-transform hover:-translate-y-0.5 hover:border-accent"
+            >
+              <span className="text-3xl">🙋</span>
+              <span className="font-display text-lg font-extrabold">Choose By Themselves</span>
+              <span className="text-sm font-normal text-ink-soft">
+                The team huddles and taps each player onto the category they want.
+              </span>
+            </button>
           </div>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mt-4"
-          onClick={() => dispatch({ type: "SHUFFLE_PLAYER_ORDER", teamId: team.id })}
-        >
-          🎲 Shuffle order
-        </Button>
-      </div>
+        </div>
+      ) : (
+        <div>
+          <div className="mb-4 inline-flex w-fit items-center rounded-full bg-accent-soft px-3 py-1 text-xs font-bold uppercase tracking-wide text-accent">
+            {mode === "random" ? "🎲 Random assign" : "🙋 Chosen by the team"}
+          </div>
+
+          <div className="grid grid-cols-[280px_1fr] gap-5 max-[720px]:grid-cols-1">
+            <Card>
+              <h3 className="mb-3 flex items-center gap-2 text-base font-semibold">
+                Players
+                <span className="ml-auto font-mono text-xs font-normal text-ink-faint">{team.members.length}</span>
+              </h3>
+              <div className="flex flex-wrap gap-2.5">
+                {team.members.length === 0 ? (
+                  <span className="text-[0.88rem] italic text-ink-faint">No players on this team yet.</span>
+                ) : (
+                  team.members.map((name) => {
+                    const timesUsed = activeRounds.filter((r) => teamLineup[r.key] === name).length;
+                    const selected = selectedMember === name;
+                    return (
+                      <button
+                        key={name}
+                        onClick={() => setSelectedMember(selected ? null : name)}
+                        className={cn(
+                          "select-none rounded-full border border-line bg-bg-sunken px-3.5 py-2 text-[0.95rem] transition-all",
+                          selected && "border-accent shadow-[0_0_0_3px_var(--accent-soft)]"
+                        )}
+                      >
+                        {name}
+                        {timesUsed > 0 && (
+                          <span className="ml-1.5 text-[0.68rem] font-bold text-gold">×{timesUsed}</span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </Card>
+
+            <Card>
+              <h3 className="mb-3 text-base font-semibold">Categories</h3>
+              <div className="flex flex-col gap-2.5">
+                {activeRounds.map((round) => {
+                  const assignee = teamLineup[round.key];
+                  return (
+                    <div
+                      key={round.key}
+                      onClick={() => selectedMember && assign(round.key, selectedMember)}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-3.5 rounded-[14px] border border-line bg-bg-sunken px-3.5 py-2.5 transition-all hover:border-accent",
+                        selectedMember && "outline-dashed outline-2 outline-accent outline-offset-2",
+                        assignee && "border-dashed bg-bg-raised opacity-55 hover:opacity-100"
+                      )}
+                    >
+                      <span className="flex-shrink-0 text-[1.3rem]">{round.icon}</span>
+                      <span className="min-w-[110px] text-[0.92rem] font-semibold">{round.title.split(" — ")[0]}</span>
+                      <span className="ml-auto flex items-center gap-2 text-sm">
+                        {assignee ? (
+                          <>
+                            <span className="font-semibold text-good">✓ {assignee}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                dispatch({ type: "CLEAR_LINEUP_ASSIGNMENT", teamId: team.id, roundKey: round.key });
+                              }}
+                              className="rounded px-1 text-ink-faint hover:text-bad"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-[0.85rem] italic text-ink-faint">Unassigned — tap a player first</span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => dispatch({ type: "CHANGE_LINEUP_MODE", teamId: team.id })}
+            >
+              ↩ Change mode
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => dispatch({ type: "RANDOMIZE_TEAM_LINEUP", teamId: team.id })}
+            >
+              🎲 Re-shuffle this team
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button
           variant="ghost"
           size="sm"
           disabled={state.lineupTeamIndex === 0}
-          onClick={() => dispatch({ type: "SET_LINEUP_TEAM_INDEX", index: state.lineupTeamIndex - 1 })}
+          onClick={() => goToTeam(state.lineupTeamIndex - 1)}
         >
           ← Prev team
         </Button>
         <Button
           variant="primary"
           className="ml-auto"
+          disabled={!mode}
           onClick={() => {
             if (isLastTeam) dispatch({ type: "CONFIRM_LINEUP_AND_START" });
-            else dispatch({ type: "SET_LINEUP_TEAM_INDEX", index: state.lineupTeamIndex + 1 });
+            else goToTeam(state.lineupTeamIndex + 1);
           }}
         >
-          {isLastTeam ? "Confirm Order → Start Trivia Night" : "Next team →"}
+          {isLastTeam ? "Confirm Lineup → Start Trivia Night" : "Next team →"}
         </Button>
       </div>
     </div>
