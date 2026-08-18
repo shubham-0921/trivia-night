@@ -175,7 +175,11 @@ export function GameScreen() {
                       >
                         ✅ Correct (+{chosenLevel.points})
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => dispatch({ type: "SCORE_DELTA", teamId: turn.teamId, delta: 0 })}
+                      >
                         ❌ Wrong (+0)
                       </Button>
                     </div>
