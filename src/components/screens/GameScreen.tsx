@@ -82,10 +82,16 @@ export function GameScreen() {
           </div>
 
           <div
-            className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-line bg-bg-sunken py-1.5 pl-2.5 pr-3.5 text-sm font-semibold"
+            className="mb-6 inline-flex w-fit items-center gap-3 rounded-[1.75rem] border border-line bg-bg-sunken py-3 pl-4 pr-5"
           >
-            <TeamDot color={turn.teamColor} className="h-2.5 w-2.5" />
-            It&apos;s <strong style={{ color: `var(${turn.teamColor})` }}>{turn.name}</strong>&apos;s turn — {turn.teamName}
+            <TeamDot color={turn.teamColor} className="h-4 w-4" />
+            <span className="text-lg font-semibold">
+              It&apos;s{" "}
+              <strong className="font-display text-3xl font-extrabold" style={{ color: `var(${turn.teamColor})` }}>
+                {turn.name}
+              </strong>
+              &apos;s turn — {turn.teamName}
+            </span>
           </div>
 
           {!chosenLevel ? (
@@ -192,15 +198,15 @@ export function GameScreen() {
             {chosenLevel && (
               <span
                 className={cn(
-                  "ml-auto inline-flex items-center gap-1.5 self-center rounded-full border px-3 py-1 font-mono text-sm font-bold tabular-nums",
-                  state.qTimerSeconds <= 10 ? "border-bad text-bad" : "border-line bg-bg-sunken"
+                  "ml-auto inline-flex items-center gap-2.5 self-center rounded-full border-2 px-5 py-2.5 font-mono text-2xl font-extrabold tabular-nums",
+                  state.qTimerSeconds <= 10 ? "border-bad bg-bad/10 text-bad" : "border-line bg-bg-sunken"
                 )}
               >
                 ⏱ {state.qTimerSeconds}s
                 <button
                   title="Restart 30s"
                   onClick={() => dispatch({ type: "RESTART_Q_TIMER" })}
-                  className="rounded px-1 text-ink-faint hover:text-accent"
+                  className="rounded px-1 text-lg text-ink-faint hover:text-accent"
                 >
                   ↺
                 </button>
